@@ -1,6 +1,6 @@
 # Pop'n Music
 
-Plugin Version: **v2.2.2**
+Plugin Version: **v3.0.0 a1**
 
 ## Supported Versions
 - pop'n music 19 Tune Street
@@ -10,10 +10,14 @@ Plugin Version: **v2.2.2**
 - pop'n music éclale
 - pop'n music Usagi to Neko to Shōnen no Yume
 - pop'n music peace
+- pop'n music Kaimei riddles
 
 Important : require minimum Asphyxia Core **v1.31**
 
 ## Changelog
+
+### 3.0.0
+* Add Kaimei riddles support
 
 ### 2.2.2
 * Usaneko/Peace : Add Omnimix support (songs with id >= 3000).
