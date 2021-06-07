@@ -26,8 +26,8 @@ const getInfoCommon = (req: EamuseInfo) => {
     };
 
     // Phase
-    const date: number = parseInt(req.model.match(/:(\d*)$/)[1]);
-    let phaseData: Phase[] = PHASE[getVersion(req)];
+    const version = getVersion(req);
+    let phaseData: Phase[] = PHASE[version];
 
     for (const phase of phaseData) {
         result.phase.push({
@@ -467,15 +467,32 @@ const getProfile = async (refid: string, version: string, name?: string) => {
         const type = parseInt(keyData[0], 10);
         const id = parseInt(keyData[1], 10);
 
-        const item: any = {
+        player.item.push({
             type: K.ITEM('u8', type),
             id: K.ITEM('u16', id),
             param: K.ITEM('u16', profileItems[key]),
             is_new: K.ITEM('bool', 0),
             get_time: K.ITEM('u64', BigInt(0)),
-        };
+        });
+    }
 
-        player.item.push(item);
+    if (version == 'v26') {
+        player.riddles_data = {
+            sp_riddles: []
+        }
+        player.riddles_data.sp_riddles = [];
+
+        const profileRiddles = achievements.riddles || {};
+        for (const id in profileRiddles) {
+            const riddle = profileRiddles[id];
+            player.riddles_data.sp_riddles.push({
+                kaimei_gauge: K.ITEM('u16', riddle.kaimei_gauge),
+                is_cleared: K.ITEM('bool', riddle.is_cleared),
+                riddles_cleared: K.ITEM('bool', riddle.riddles_cleared),
+                select_count: K.ITEM('u8', riddle.select_count),
+                other_count: K.ITEM('u32', riddle.other_count),
+            });
+        }
     }
 
     // Add version specific datas
@@ -628,6 +645,37 @@ const write = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any>
         achievements.stamps[id] = cnt;
     }
 
+    // riddles (v26)
+    if(version == 'v26') {
+        let riddlesData = _.get(data, 'riddles_data', []);
+        let riddles = _.get(riddlesData, 'sp_riddles', []);
+        if (!achievements.riddles) {
+            achievements.riddles = {};
+        }
+
+        if (!_.isArray(riddles)) {
+            riddles = [riddles];
+        }
+
+        let i = 0;
+        for (const riddle of riddles) {
+            const kaimei_gauge = $(riddle).number('kaimei_gauge');
+            const is_cleared = $(riddle).bool('is_cleared');
+            const riddles_cleared = $(riddle).bool('riddles_cleared');
+            const select_count = $(riddle).number('select_count');
+            const other_count = $(riddle).number('other_count');
+
+            achievements.riddles[i] = {
+                kaimei_gauge,
+                is_cleared,
+                riddles_cleared,
+                select_count,
+                other_count,
+            };
+            i++;
+        }
+    }
+
     await utils.writeParams(refid, version, params);
     await utils.writeAchievements(refid, version, achievements);
 
@@ -668,15 +716,17 @@ const friend = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-let isOmni= false;
+let isOmni = false;
 
 const getVersion = (req: EamuseInfo): string => {
-    if(req.model.indexOf('J:A:X') >= 0) {
+    if (req.model.indexOf('J:A:X') >= 0) {
         isOmni = true;
     }
-    
+
     const date: number = parseInt(req.model.match(/:(\d*)$/)[1]);
-    if (date >= 2018101700) {
+    if (date > 2020120900) {
+        return 'v26';
+    } else if (date >= 2018101700 && date <= 2020120900) {
         return 'v25';
     } else {
         return 'v24';
@@ -698,6 +748,7 @@ const defaultAchievements: AchievementsUsaneko = {
     items: {},
     charas: {},
     stamps: {},
+    riddles: {},
 }
 
 const PHASE = {
@@ -743,6 +794,35 @@ const PHASE = {
         { id: 22, p: 2 },
         { id: 23, p: 1 },
         { id: 24, p: 1 },
+    ],
+    v26: [
+        { id: 0, p: 24 },
+        { id: 1, p: 4 },
+        { id: 2, p: 2 },
+        { id: 3, p: 4 },
+        { id: 4, p: 1 },
+        { id: 5, p: 0 }, // Enable Net Taisen (0-1)
+        { id: 6, p: 1 },
+        { id: 7, p: 1 },
+        { id: 8, p: 2 },
+        { id: 9, p: 0 }, // Daily Mission (0-2)
+        { id: 10, p: 30 },
+        { id: 11, p: 1 },
+        { id: 12, p: 2 },
+        { id: 13, p: 1 },
+        { id: 14, p: 39 },
+        { id: 15, p: 2 },
+        { id: 16, p: 3 },
+        { id: 17, p: 8 },
+        { id: 18, p: 1 },
+        { id: 19, p: 1 },
+        { id: 20, p: 13 },
+        { id: 21, p: 20 }, // pop'n event archive
+        { id: 22, p: 2 },
+        { id: 23, p: 1 },
+        { id: 24, p: 1 },
+        { id: 25, p: 24 }, // M&N event (0: disable, 24: all characters)
+        { id: 26, p: 3 },
     ]
 }
 
@@ -772,6 +852,10 @@ const EXTRA_DATA: ExtraData = {
     power_point: { type: 's32', path: 'account', default: 0 },
     player_point: { type: 's32', path: 'account', default: 300 },
     power_point_list: { type: 's32', path: 'account', default: [0], isArray: true },
+
+    //v26
+    card_again_count: { type: 's16', path: 'account', default: 0 },
+    sp_riddles_id: { type: 's16', path: 'account', default: -1 },
 
     mode: { type: 'u8', path: 'config', default: 0 },
     chara: { type: 's16', path: 'config', default: 0 },
