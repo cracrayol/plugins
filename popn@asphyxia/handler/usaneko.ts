@@ -485,16 +485,18 @@ const getProfile = async (refid: string, version: string, name?: string) => {
 
         const profileRiddles = achievements.riddles || {};
         
-        for (let i = 0; i < 28; i++) {
+        let i = 0;
+        while (profileRiddles[i] != undefined) {
             const riddle = profileRiddles[i];
             player.riddles_data.sp_riddles.push({
-                kaimei_gauge: K.ITEM('u16', riddle.kaimei_gauge),
-                is_cleared: K.ITEM('bool', riddle.is_cleared),
-                riddles_cleared: K.ITEM('bool', riddle.riddles_cleared),
-                select_count: K.ITEM('u8', riddle.select_count),
-                other_count: K.ITEM('u32', riddle.other_count),
+                kaimei_gauge: K.ITEM('u16', riddle.kaimei_gauge || 0),
+                is_cleared: K.ITEM('bool', riddle.is_cleared || false),
+                riddles_cleared: K.ITEM('bool', riddle.riddles_cleared || false),
+                select_count: K.ITEM('u8', riddle.select_count || 0),
+                other_count: K.ITEM('u32', riddle.other_count || 0),
             });
-        }
+            i++;
+        };
 
         // riddle id : 1 to 20
         let randomRiddles = [];
