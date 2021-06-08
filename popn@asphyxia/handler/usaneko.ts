@@ -478,13 +478,15 @@ const getProfile = async (refid: string, version: string, name?: string) => {
 
     if (version == 'v26') {
         player.riddles_data = {
-            sp_riddles: []
+            sp_riddles: [],            
+            sh_riddles: []
         }
         player.riddles_data.sp_riddles = [];
 
         const profileRiddles = achievements.riddles || {};
-        for (const id in profileRiddles) {
-            const riddle = profileRiddles[id];
+        
+        for (let i = 0; i < 28; i++) {
+            const riddle = profileRiddles[i];
             player.riddles_data.sp_riddles.push({
                 kaimei_gauge: K.ITEM('u16', riddle.kaimei_gauge),
                 is_cleared: K.ITEM('bool', riddle.is_cleared),
@@ -492,6 +494,17 @@ const getProfile = async (refid: string, version: string, name?: string) => {
                 select_count: K.ITEM('u8', riddle.select_count),
                 other_count: K.ITEM('u32', riddle.other_count),
             });
+        }
+
+        // riddle id : 1 to 20
+        let randomRiddles = [];
+        for(let i = 0; i < 3; i++) {
+            let riddle = 0;
+            do {
+                riddle = Math.floor(Math.random() * 20) + 1;
+            } while (randomRiddles.indexOf(riddle) >= 0);
+
+            player.riddles_data.sh_riddles.push({sh_riddles_id: K.ITEM('u32', riddle)});
         }
     }
 
