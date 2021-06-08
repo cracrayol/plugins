@@ -736,6 +736,7 @@ const getVersion = (req: EamuseInfo): string => {
 const GAME_MAX_MUSIC_ID = {
     v24: 1704,
     v25: 1877,
+    v26: 1999,
     omni: 3155
 }
 
