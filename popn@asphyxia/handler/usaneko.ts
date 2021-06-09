@@ -662,6 +662,7 @@ const write = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any>
 
     // riddles (v26)
     if(version == 'v26') {
+        const playedRiddle = <number> params.params.sp_riddles_id;
         let riddlesData = _.get(data, 'riddles_data', []);
         let riddles = _.get(riddlesData, 'sp_riddles', []);
         if (!achievements.riddles) {
@@ -674,11 +675,19 @@ const write = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any>
 
         let i = 0;
         for (const riddle of riddles) {
-            const kaimei_gauge = $(riddle).number('kaimei_gauge');
+            const kaimei_gauge = $(riddle).number('kaimei_gauge', 0);
             const is_cleared = $(riddle).bool('is_cleared');
             const riddles_cleared = $(riddle).bool('riddles_cleared');
-            const select_count = $(riddle).number('select_count');
-            const other_count = $(riddle).number('other_count');
+            let select_count = $(riddle).number('select_count', 0);
+            const other_count = $(riddle).number('other_count', 0);
+
+            if(riddles_cleared || select_count >= 3) {
+                // Show all hint if riddle cleared.
+                select_count = 3
+            } else if(playedRiddle == i) {
+                // Add a hint if riddle is select. 
+                select_count++;
+            }
 
             achievements.riddles[i] = {
                 kaimei_gauge,
