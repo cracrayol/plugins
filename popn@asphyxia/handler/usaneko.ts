@@ -377,25 +377,8 @@ const getProfile = async (refid: string, version: string, name?: string) => {
                 friendship: K.ITEM('s32', 0),
             },
         },
-        // TODO: Daily missions
-        mission: [
-            {
-                mission_id: K.ITEM('u32', 170),
-                gauge_point: K.ITEM('u32', 0),
-                mission_comp: K.ITEM('u32', 0),
-            },
-            {
-                mission_id: K.ITEM('u32', 157),
-                gauge_point: K.ITEM('u32', 0),
-                mission_comp: K.ITEM('u32', 0),
-            },
-            {
-                mission_id: K.ITEM('u32', 47),
-                gauge_point: K.ITEM('u32', 0),
-                mission_comp: K.ITEM('u32', 0),
-            },
-        ],
         music: await getScores(refid, version),
+        mission: [],
         area: [],
         course_data: [],
         fes: [],
@@ -403,6 +386,10 @@ const getProfile = async (refid: string, version: string, name?: string) => {
         chara_param: [],
         stamp: [],
     };
+
+    // Add version specific datas
+    let params = await utils.readParams(refid, version);
+    utils.addExtraData(player, params, EXTRA_DATA);
 
     const achievements = <AchievementsUsaneko>await utils.readAchievements(refid, version, { ...defaultAchievements, version });
 
@@ -476,18 +463,64 @@ const getProfile = async (refid: string, version: string, name?: string) => {
         });
     }
 
+    // Usaneko events
+    if (version == 'v24') {        
+        const date = new Date();
+        const currentDate = date.getFullYear() + '-' + date.getMonth() + '-' + date.getDate();
+
+        if (!params.params.mission_date) {
+            params.params.mission_date = currentDate;
+        }
+
+        // Daily missions
+        const missions = achievements.missions || { 1: {}, 2: {}, 3: {} };
+        let maxId = parseInt(_.max(Object.keys(missions)), 10);
+
+        for (const id in missions) {
+            const mission = missions[id];
+
+            if (currentDate != params.params.mission_date) {
+                // New day => Check completion
+                if(mission.mission_comp == 1) {
+                    // Mission completed => New mission
+                    _.max(Object.keys(missions)) + 1
+                    player.mission.push({
+                        mission_id: K.ITEM('u32', ++maxId),
+                        gauge_point: K.ITEM('u32', 0),
+                        mission_comp: K.ITEM('u32', 0),
+                    });
+                } else {
+                    // Mission not completed => Reset counter
+                    player.mission.push({
+                        mission_id: K.ITEM('u32', parseInt(id, 10)),
+                        gauge_point: K.ITEM('u32', 0),
+                        mission_comp: K.ITEM('u32', 0),
+                    });
+                }
+            } else {
+                player.mission.push({
+                    mission_id: K.ITEM('u32', parseInt(id, 10)),
+                    gauge_point: K.ITEM('u32', mission.gauge_point || 0),
+                    mission_comp: K.ITEM('u32', mission.mission_comp || 0),
+                });
+            }
+        }
+    }
+
+    // Kaimei events
     if (version == 'v26') {
+        // Kaimei! MN tanteisha
         player.riddles_data = {
-            sp_riddles: [],            
+            sp_riddles: [],
             sh_riddles: []
         }
         player.riddles_data.sp_riddles = [];
 
-        const profileRiddles = achievements.riddles || {};
-        
+        const riddles = achievements.riddles || {};
+
         let i = 0;
-        while (profileRiddles[i] != undefined) {
-            const riddle = profileRiddles[i];
+        while (riddles[i] != undefined) {
+            const riddle = riddles[i];
             player.riddles_data.sp_riddles.push({
                 kaimei_gauge: K.ITEM('u16', riddle.kaimei_gauge || 0),
                 is_cleared: K.ITEM('bool', riddle.is_cleared || false),
@@ -500,19 +533,15 @@ const getProfile = async (refid: string, version: string, name?: string) => {
 
         // riddle id : 1 to 20
         let randomRiddles = [];
-        for(let i = 0; i < 3; i++) {
+        for (let i = 0; i < 3; i++) {
             let riddle = 0;
             do {
                 riddle = Math.floor(Math.random() * 20) + 1;
             } while (randomRiddles.indexOf(riddle) >= 0);
 
-            player.riddles_data.sh_riddles.push({sh_riddles_id: K.ITEM('u32', riddle)});
+            player.riddles_data.sh_riddles.push({ sh_riddles_id: K.ITEM('u32', riddle) });
         }
     }
-
-    // Add version specific datas
-    let params = await utils.readParams(refid, version);
-    utils.addExtraData(player, params, EXTRA_DATA);
 
     return player;
 }
@@ -660,9 +689,34 @@ const write = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any>
         achievements.stamps[id] = cnt;
     }
 
+    // usaneko (v24)
+    if (version == 'v24') {
+        // Daily missions
+        const date = new Date();
+        params.params.mission_date = date.getFullYear() + '-' + date.getMonth() + '-' + date.getDate();
+
+        let missions = _.get(data, 'mission', []);
+        achievements.missions = {};
+
+        if (!_.isArray(missions)) {
+            missions = [missions];
+        }
+
+        for (const mission of missions) {
+            const id = $(mission).number('mission_id');
+            const gauge_point = $(mission).number('gauge_point');
+            const mission_comp = $(mission).number('mission_comp');
+
+            achievements.missions[id] = {
+                gauge_point,
+                mission_comp,
+            };
+        }
+    }
+
     // riddles (v26)
-    if(version == 'v26') {
-        const playedRiddle = <number> params.params.sp_riddles_id;
+    if (version == 'v26') {
+        const playedRiddle = <number>params.params.sp_riddles_id;
         let riddlesData = _.get(data, 'riddles_data', []);
         let riddles = _.get(riddlesData, 'sp_riddles', []);
         if (!achievements.riddles) {
@@ -681,10 +735,10 @@ const write = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any>
             let select_count = $(riddle).number('select_count', 0);
             const other_count = $(riddle).number('other_count', 0);
 
-            if(riddles_cleared || select_count >= 3) {
+            if (riddles_cleared || select_count >= 3) {
                 // Show all hint if riddle cleared.
                 select_count = 3
-            } else if(playedRiddle == i) {
+            } else if (playedRiddle == i) {
                 // Add a hint if riddle is select. 
                 select_count++;
             }
@@ -774,6 +828,7 @@ const defaultAchievements: AchievementsUsaneko = {
     charas: {},
     stamps: {},
     riddles: {},
+    missions: {},
 }
 
 const PHASE = {
@@ -787,7 +842,7 @@ const PHASE = {
         { id: 6, p: 1 }, // Enable NAVI-kun shunkyoku toujou, allows song 1608 to be unlocked (0-1)
         { id: 7, p: 1 },
         { id: 8, p: 2 },
-        { id: 9, p: 0 }, // Daily Mission (0-2)
+        { id: 9, p: 2 }, // Daily Mission (0-2)
         { id: 10, p: 15 }, // NAVI-kun Song phase availability (0-15)
         { id: 11, p: 1 },
         { id: 12, p: 2 },
@@ -803,11 +858,12 @@ const PHASE = {
         { id: 6, p: 1 },
         { id: 7, p: 1 },
         { id: 8, p: 2 },
-        { id: 9, p: 0 }, // Daily Mission (0-2)
+        { id: 9, p: 2 },
         { id: 10, p: 30 },
         { id: 11, p: 1 },
         { id: 12, p: 2 },
         { id: 13, p: 1 },
+        // New params
         { id: 14, p: 39 },
         { id: 15, p: 2 },
         { id: 16, p: 3 },
@@ -830,7 +886,7 @@ const PHASE = {
         { id: 6, p: 1 },
         { id: 7, p: 1 },
         { id: 8, p: 2 },
-        { id: 9, p: 0 }, // Daily Mission (0-2)
+        { id: 9, p: 2 },
         { id: 10, p: 30 },
         { id: 11, p: 1 },
         { id: 12, p: 2 },
@@ -842,10 +898,11 @@ const PHASE = {
         { id: 18, p: 1 },
         { id: 19, p: 1 },
         { id: 20, p: 13 },
-        { id: 21, p: 20 }, // pop'n event archive
+        { id: 21, p: 20 },
         { id: 22, p: 2 },
         { id: 23, p: 1 },
         { id: 24, p: 1 },
+        // New params
         { id: 25, p: 24 }, // M&N event (0: disable, 24: all characters)
         { id: 26, p: 3 },
     ]

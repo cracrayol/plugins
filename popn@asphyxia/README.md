@@ -1,6 +1,6 @@
 # Pop'n Music
 
-Plugin Version: **v3.0.0 a1**
+Plugin Version: **v3.0.0 a2**
 
 ## Supported Versions
 - pop'n music 19 Tune Street
@@ -18,6 +18,7 @@ Important : require minimum Asphyxia Core **v1.31**
 
 ### 3.0.0
 * Add Kaimei riddles support
+* Usaneko : Add Daily Missions support
 
 ### 2.2.2
 * Usaneko/Peace : Add Omnimix support (songs with id >= 3000).

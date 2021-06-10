@@ -94,6 +94,13 @@ export interface AchievementsUsaneko extends Achievements {
     };
   };
 
+  missions: {
+    [id: string]: {
+      gauge_point: number;
+      mission_comp: number;
+    };
+  };
+
   items: {
     [key: string]: number;
   };
