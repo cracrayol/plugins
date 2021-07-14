@@ -166,7 +166,6 @@ const readScore = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<
 const getScores = async (refid: string, version: string, forFriend: boolean = false) => {
     const scoresData = await utils.readScores(refid, version);
     const result = [];
-    const maxMusicId = GAME_MAX_MUSIC_ID[isOmni ? 'omni' : version];
 
     for (const key in scoresData.scores) {
         const keyData = key.split(':');
@@ -187,7 +186,7 @@ const getScores = async (refid: string, version: string, forFriend: boolean = fa
             1100: 11,
         }[score.clear_type] || 0;
 
-        if (music > maxMusicId) {
+        if (!isOmni && (music > GAME_MAX_MUSIC_ID[version])) {
             continue;
         }
         if ([0, 1, 2, 3].indexOf(sheet) == -1) {
@@ -797,7 +796,7 @@ const friend = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any
 let isOmni = false;
 
 const getVersion = (req: EamuseInfo): string => {
-    if (req.model.indexOf('J:A:X') >= 0) {
+    if (req.model.indexOf('J:A:X') >= 0 || req.model.indexOf('J:B:X') >= 0 || req.model.indexOf('J:C:X') >= 0) {
         isOmni = true;
     }
 
@@ -814,8 +813,7 @@ const getVersion = (req: EamuseInfo): string => {
 const GAME_MAX_MUSIC_ID = {
     v24: 1704,
     v25: 1877,
-    v26: 1999,
-    omni: 3155
+    v26: 1999
 }
 
 const defaultAchievements: AchievementsUsaneko = {
