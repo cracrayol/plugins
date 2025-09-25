@@ -12,10 +12,14 @@ Plugin Version: **v3.0.0**
 - pop'n music peace
 - pop'n music Kaimei riddles
 - pop'n music Unilab
+- pop'n music Jam&Fizz
 
 Important : require minimum Asphyxia Core **v1.31**
 
 ## Changelog
+
+### 4.1.0
+* Jam&Fizz: Support added
 
 ### 4.0.0
 * Unilab: Support added

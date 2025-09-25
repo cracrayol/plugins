@@ -478,7 +478,7 @@ const getProfile = async (refid: string, version: string, name?: string) => {
         }
     }
 
-    // Usaneko events
+    // Usaneko
     if (version == 'v24') {        
         const date = new Date();
         const currentDate = date.getFullYear() + '-' + date.getMonth() + '-' + date.getDate();
@@ -522,7 +522,7 @@ const getProfile = async (refid: string, version: string, name?: string) => {
         }
     }
 
-    // Kaimei events
+    // Kaimei Riddles
     if (version == 'v26') {
         // Kaimei! MN tanteisha
         player.riddles_data = {
@@ -558,7 +558,7 @@ const getProfile = async (refid: string, version: string, name?: string) => {
         }
     }
 
-    // Unilab events
+    // Unilab
     if (version == 'v27') {
         const teams = achievements.team || [];
         const batteries = achievements.battery || [];
@@ -582,6 +582,43 @@ const getProfile = async (refid: string, version: string, name?: string) => {
                 battery_id: K.ITEM('s16', battery.battery_id || 0),
                 energy: K.ITEM('u32', battery.energy || 0),
                 is_cleared: K.ITEM('bool', battery.is_cleared || false),
+            });
+        };
+    }
+
+    // Jam&Fizz
+    if (version == 'v28') {
+        const orders = achievements.order || [];
+        const lamps = achievements.neon_lamp || [];
+        const stamps = achievements.neko_stamp || [];
+
+        player.event_p28.burger_first_play = K.ITEM('bool', orders.length == 0);
+
+        player.event_p28.order = [];
+        for (const order of orders) {
+            player.event_p28.order.push({
+                id: K.ITEM('s16', order.id || 0),
+                point: K.ITEM('u32', order.point || 0),
+                patties: K.ARRAY('s16', order.patties || Array(40).fill(-1)),
+                is_cleared: K.ITEM('bool', order.is_cleared || false),
+            });
+        };
+
+        player.event_p28.neon_lamp = [];
+        for (const lamp of lamps) {
+            player.event_p28.neon_lamp.push({
+                id: K.ITEM('s16', lamp.id || 0),
+                point: K.ITEM('u32', lamp.point || 0),
+                is_cleared: K.ITEM('bool', lamp.is_cleared || false),
+            });
+        };
+
+        player.event_p28.neko_stamp = [];
+        for (const stamp of stamps) {
+            player.event_p28.neko_stamp.push({
+                id: K.ITEM('s16', stamp.id || 0),
+                point: K.ITEM('u32', stamp.point || 0),
+                is_cleared: K.ITEM('bool', stamp.is_cleared || false),
             });
         };
     }
@@ -702,7 +739,7 @@ const write = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any>
         achievements.stamps[id] = cnt;
     }
 
-    // usaneko (v24)
+    // Usaneko
     if (version == 'v24') {
         // Daily missions
         const date = new Date();
@@ -721,7 +758,7 @@ const write = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any>
         }
     }
 
-    // riddles (v26)
+    // Kamei Riddles
     if (version == 'v26') {
         const playedRiddle = <number>params.params.sp_riddles_id;
         let riddlesData = _.get(data, 'riddles_data', []);
@@ -756,7 +793,7 @@ const write = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any>
         }
     }
 
-    // Unilab (v27)
+    // Unilab
     if (version == 'v27') {
         let eventData = _.get(data, 'event_p27', []);
 
@@ -806,6 +843,77 @@ const write = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any>
         }
     }
 
+    // Jam&Fizz
+    if (version == 'v28') {
+        let eventData = _.get(data, 'event_p28', []);
+
+        if (_.isNil(achievements.order)) {
+            achievements.order = [];
+        }
+        for (const order of getNodesAsArray(eventData, 'order')) {            
+            const id = $(order).number('id');
+            const point = $(order).number('point');
+            const patties = $(order).numbers('patties');
+            const is_cleared = $(order).bool('is_cleared');
+
+            let savedOrder = _.find(achievements.order, {'id': id});
+            if(_.isUndefined(savedOrder)) {
+                achievements.order.push({
+                    id,
+                    point,
+                    patties,
+                    is_cleared
+                });
+            } else {
+                savedOrder.point = point;
+                savedOrder.patties = patties;
+                savedOrder.is_cleared = is_cleared;
+            }
+        }
+
+        if (_.isNil(achievements.neon_lamp)) {
+            achievements.neon_lamp = [];
+        }
+        for (const lamp of getNodesAsArray(eventData, 'neon_lamp')) {
+            const id = $(lamp).number('id');
+            const point = $(lamp).number('point');
+            const is_cleared = $(lamp).bool('is_cleared');
+
+            let savedLamp = _.find(achievements.neon_lamp, {'id': id});
+            if(_.isUndefined(savedLamp)) {
+                achievements.neon_lamp.push({
+                    id,
+                    point,
+                    is_cleared
+                });
+            } else {
+                savedLamp.point = point;
+                savedLamp.is_cleared = is_cleared;
+            }
+        }
+
+        if (_.isNil(achievements.neko_stamp)) {
+            achievements.neko_stamp = [];
+        }
+        for (const stamp of getNodesAsArray(eventData, 'neko_stamp')) {
+            const id = $(stamp).number('id');
+            const point = $(stamp).number('point');
+            const is_cleared = $(stamp).bool('is_cleared');
+
+            let savedStamp = _.find(achievements.neko_stamp, {'id': id});
+            if(_.isUndefined(savedStamp)) {
+                achievements.neko_stamp.push({
+                    id,
+                    point,
+                    is_cleared
+                });
+            } else {
+                savedStamp.point = point;
+                savedStamp.is_cleared = is_cleared;
+            }
+        }
+    }
+
     await utils.writeParams(refid, version, params);
     await utils.writeAchievements(refid, version, achievements);
 
@@ -847,8 +955,10 @@ const friend = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any
 const getPhase = (version: String): Phase[] => {
     let phase = [];
     switch(version) {
+        case 'v28':
+            phase = PHASE['v28'];
         case 'v27':
-            phase = PHASE['v27'];
+            phase = _.unionBy(phase, PHASE['v27'], 'id');
             break;
         case 'v26':
             phase = PHASE['v26'];
@@ -863,9 +973,12 @@ const getPhase = (version: String): Phase[] => {
 const getExtraData = (version: String, full: boolean = false): ExtraData => {
     let extraData = EXTRA_DATA_COMMON;
     if (full) {
-        extraData = _.merge(extraData, EXTRA_DATA_V27, EXTRA_DATA_V26);
+        extraData = _.merge(extraData, EXTRA_DATA_V28, EXTRA_DATA_V27, EXTRA_DATA_V26);
     } else {
         switch(version) {
+            case 'v28':
+                extraData = _.merge(extraData, EXTRA_DATA_V28);
+                break;
             case 'v27':
                 extraData = _.merge(extraData, EXTRA_DATA_V27);
                 break;
@@ -896,7 +1009,9 @@ const getVersion = (req: EamuseInfo): string => {
     }
 
     const date: number = parseInt(req.model.match(/:(\d*)$/)[1]);
-    if (date >= 2022091300) {
+    if (date >= 2024092500) {
+        return 'v28';
+    } else if (date >= 2022091300 && date < 2024092500) {
         return 'v27';
     } else if (date >= 2021042600 && date < 2022091300) {
         return 'v26';
@@ -911,14 +1026,16 @@ const GAME_MAX_MUSIC_ID = {
     v24: 1704,
     v25: 1877,
     v26: 2019,
-    v27: 2188
+    v27: 2188,
+    v28: 2259
 }
 
 const GAME_MAX_DECO_ID = {
     v24: 97,
     v25: 133,
     v26: 133,
-    v27: 81
+    v27: 81,
+    v28: 81 // Need correct value
 }
 
 const defaultAchievements: AchievementsUsaneko = {
@@ -933,7 +1050,10 @@ const defaultAchievements: AchievementsUsaneko = {
     riddles: {},
     missions: {},
     team: [],
-    battery: []
+    battery: [],
+    order: [],
+    neon_lamp: [],
+    neko_stamp: []
 }
 
 const PHASE = {
@@ -993,6 +1113,16 @@ const PHASE = {
         { id: 11, p: 2 }, // CanCan's Super Awakening Boost (0: disabled, 1: enabled, 2: ended)
         { id: 12, p: 2 }, // Unknown event (0-2)
         { id: 13, p: 2 }, // Unknown event (0-2)
+    ],
+    v28: [
+        { id: 0, p: 12 },  // Music phase (0: No unlock, 1-12: steps)
+        { id: 1, p: 9 },   // Shutchou! pop'n quest Lively II (0: not started, 1-8: steps, 9: ended)
+        { id: 4, p: 9 },   // Unknown event (0-9)
+        { id: 14, p: 4 },  // Unknown event (0-4)
+        { id: 15, p: 33 }, // Poppin' Burger (0: disabled, 1-33: steps)
+        { id: 16, p: 2 },  // Unknown event (0-2)
+        { id: 17, p: 1 },  // Unknown event (0-1)
+        { id: 18, p: 3 },  // Unknown event (0-3)
     ]
 }
 
@@ -1080,4 +1210,14 @@ const EXTRA_DATA_V27: ExtraData = {
     team_id: { type: 's16', path: 'event_p27', default: 0 },
     select_battery_id: { type: 's16', path: 'event_p27', default: 1 },
     today_first_play: { type: 'bool', path: 'event_p27', default: 1 },
+}
+
+const EXTRA_DATA_V28: ExtraData = {
+    sc_news_no: { type: 's32', path: 'account', default: 0 },
+    guide_se_vol: { type: 'u8', path: 'option', default: 0 },
+    lift: { type: 'bool', path: 'option', default: 0 },
+    lift_rate: { type: 's16', path: 'option', default: 0 },
+    burger_daily_bonus: { type: 'bool', path: 'event_p28', default: true },
+    current_order: { type: 's16', path: 'event_p28', default: Array(3).fill(-1), isArray: true },
+    neko_daily_bonus: { type: 'bool', path: 'event_p28', default: true },
 }

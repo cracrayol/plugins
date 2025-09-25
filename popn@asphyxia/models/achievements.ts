@@ -124,7 +124,10 @@ export interface AchievementsUsaneko extends Achievements {
   };
 
   team: Team[];
-  battery: Battery[]
+  battery: Battery[];
+  order: Order[];
+  neon_lamp: NeonNeko[];
+  neko_stamp: NeonNeko[];
 }
 
 interface Team {
@@ -137,5 +140,18 @@ interface Team {
 interface Battery {
   battery_id: number;
   energy: number;
+  is_cleared: boolean;
+}
+
+interface Order {
+  id: number;
+  point: number;
+  patties: number[];
+  is_cleared: boolean;
+}
+
+interface NeonNeko {
+  id: number;
+  point: number;
   is_cleared: boolean;
 }
