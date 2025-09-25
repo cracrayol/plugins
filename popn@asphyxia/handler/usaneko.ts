@@ -604,16 +604,11 @@ const write = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any>
     utils.getExtraData(data, params, getExtraData(version, true));
 
     // areas
-    let areas = _.get(data, 'area', []);
     if (!achievements.areas) {
         achievements.areas = {};
     }
 
-    if (!_.isArray(areas)) {
-        areas = [areas];
-    }
-
-    for (const area of areas) {
+    for (const area of getNodesAsArray(data, 'area')) {
         const id = $(area).number('area_id');
         const chapter_index = $(area).number('chapter_index');
         const gauge_point = $(area).number('gauge_point');
@@ -629,16 +624,11 @@ const write = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any>
     }
 
     // courses
-    let courses = _.get(data, 'course_data', []);
     if (!achievements.courses) {
         achievements.courses = {};
     }
 
-    if (!_.isArray(courses)) {
-        courses = [courses];
-    }
-
-    for (const course of courses) {
+    for (const course of getNodesAsArray(data, 'course_data')) {
         const id = $(course).number('course_id');
         const clear_type = $(course).number('clear_type');
         const clear_rank = $(course).number('clear_rank');
@@ -656,16 +646,11 @@ const write = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any>
     }
 
     // fes
-    let fes = _.get(data, 'fes', []);
     if (!achievements.fes) {
         achievements.fes = {};
     }
 
-    if (!_.isArray(fes)) {
-        fes = [fes];
-    }
-
-    for (const fesElt of fes) {
+    for (const fesElt of getNodesAsArray(data, 'fes')) {
         const id = $(fesElt).number('fes_id');
         const chapter_index = $(fesElt).number('chapter_index');
         const gauge_point = $(fesElt).number('gauge_point');
@@ -679,16 +664,11 @@ const write = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any>
     }
 
     // items
-    let items = _.get(data, 'item', []);
     if (!achievements.items) {
         achievements.items = {};
     }
 
-    if (!_.isArray(items)) {
-        items = [items];
-    }
-
-    for (const item of items) {
+    for (const item of getNodesAsArray(data, 'item')) {
         const type = $(item).number('type');
         const id = $(item).number('id');
         const param = $(item).number('param');
@@ -699,16 +679,11 @@ const write = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any>
     }
 
     // charas
-    let charas = _.get(data, 'chara_param', []);
     if (!achievements.charas) {
         achievements.charas = {};
     }
 
-    if (!_.isArray(charas)) {
-        charas = [charas];
-    }
-
-    for (const chara of charas) {
+    for (const chara of getNodesAsArray(data, 'chara_param')) {
         const id = $(chara).number('chara_id');
         const param = $(chara).number('friendship');
 
@@ -716,16 +691,11 @@ const write = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any>
     }
 
     // stamps
-    let stamps = _.get(data, 'stamp', []);
     if (!achievements.stamps) {
         achievements.stamps = { '0': 0 };
     }
 
-    if (!_.isArray(stamps)) {
-        stamps = [stamps];
-    }
-
-    for (const stamp of stamps) {
+    for (const stamp of getNodesAsArray(data, 'stamp')) {
         const id = $(stamp).number('stamp_id');
         const cnt = $(stamp).number('cnt');
 
@@ -738,14 +708,8 @@ const write = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any>
         const date = new Date();
         params.params.mission_date = date.getFullYear() + '-' + date.getMonth() + '-' + date.getDate();
 
-        let missions = _.get(data, 'mission', []);
         achievements.missions = {};
-
-        if (!_.isArray(missions)) {
-            missions = [missions];
-        }
-
-        for (const mission of missions) {
+        for (const mission of getNodesAsArray(data, 'mission')) {
             const id = $(mission).number('mission_id');
             const gauge_point = $(mission).number('gauge_point');
             const mission_comp = $(mission).number('mission_comp');
@@ -761,17 +725,12 @@ const write = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any>
     if (version == 'v26') {
         const playedRiddle = <number>params.params.sp_riddles_id;
         let riddlesData = _.get(data, 'riddles_data', []);
-        let riddles = _.get(riddlesData, 'sp_riddles', []);
         if (!achievements.riddles) {
             achievements.riddles = {};
         }
 
-        if (!_.isArray(riddles)) {
-            riddles = [riddles];
-        }
-
         let i = 0;
-        for (const riddle of riddles) {
+        for (const riddle of getNodesAsArray(riddlesData, 'sp_riddles')) {
             const kaimei_gauge = $(riddle).number('kaimei_gauge', 0);
             const is_cleared = $(riddle).bool('is_cleared');
             const riddles_cleared = $(riddle).bool('riddles_cleared');
@@ -800,12 +759,11 @@ const write = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any>
     // Unilab (v27)
     if (version == 'v27') {
         let eventData = _.get(data, 'event_p27', []);
-        let team = _.get(eventData, 'team', null);
-        if(_.isPlainObject(team)) {            
-            if (_.isNil(achievements.team)) {
-                achievements.team = [];
-            }
 
+        if (_.isNil(achievements.team)) {
+            achievements.team = [];
+        }
+        for (const team of getNodesAsArray(eventData, 'team')) {
             const team_id = $(team).number('team_id');
             const ex_no = $(team).number('ex_no');
             const point = $(team).number('point');
@@ -825,13 +783,11 @@ const write = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any>
                 savedTeam.is_cleared = is_cleared;
             }
         }
-        
-        let battery = _.get(eventData, 'battery', null);
-        if(_.isPlainObject(battery)) {            
-            if (_.isNil(achievements.battery)) {
-                achievements.battery = [];
-            }
 
+        if (_.isNil(achievements.battery)) {
+            achievements.battery = [];
+        }
+        for (const battery of getNodesAsArray(eventData, 'battery')) {
             const battery_id = $(battery).number('battery_id');
             const energy = $(battery).number('energy');
             const is_cleared = $(battery).bool('is_cleared');
@@ -919,6 +875,15 @@ const getExtraData = (version: String, full: boolean = false): ExtraData => {
         }
     }
     return extraData;
+}
+
+const getNodesAsArray = (data: any, nodeName: string): any[] => {
+    let elements = _.get(data, nodeName, []);
+    if (!_.isArray(elements)) {
+        elements = [elements];
+    }
+
+    return elements;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1064,14 +1029,14 @@ const EXTRA_DATA_COMMON: ExtraData = {
     category: { type: 's8', path: 'config', default: 0 },
     sub_category: { type: 's8', path: 'config', default: 0 },
     chara_category: { type: 's8', path: 'config', default: 0 },
+    course_id: { type: 's16', path: 'config', default: 0 },
+    course_folder: { type: 's8', path: 'config', default: 0 },
     ms_banner_disp: { type: 's8', path: 'config', default: 0 },
     ms_down_info: { type: 's8', path: 'config', default: 0 },
     ms_side_info: { type: 's8', path: 'config', default: 0 },
     ms_raise_type: { type: 's8', path: 'config', default: 0 },
     ms_rnd_type: { type: 's8', path: 'config', default: 0 },
     banner_sort: { type: 's8', path: 'config', default: 0 },
-    course_id: { type: 's16', path: 'config', default: 0 },
-    course_folder: { type: 's8', path: 'config', default: 0 },
 
     hispeed: { type: 's16', path: 'option', default: 10 },
     popkun: { type: 'u8', path: 'option', default: 0 },
@@ -1086,8 +1051,8 @@ const EXTRA_DATA_COMMON: ExtraData = {
     forever_0: { type: 'bool', path: 'option', default: 0 },
     forever_1: { type: 'bool', path: 'option', default: 0 },
     full_setting: { type: 'bool', path: 'option', default: 0 },
-    guide_se: { type: 's8', path: 'option', default: 0 },
     judge: { type: 'u8', path: 'option', default: 0 },
+    guide_se: { type: 's8', path: 'option', default: 0 },
 
     ep: { type: 'u16', path: 'info', default: 0 },
 
